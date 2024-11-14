@@ -87,7 +87,6 @@ ML_DATASETS = {
 def load_pandas_df(
     size="100k",
     header=("userID", "itemID", "rating", "timestamp"),
-    path=None,
     title_col=None,
     genres_col=None,
     year_col=None,
@@ -249,9 +248,6 @@ def download_and_extract(size, dest_path):
 
     if not os.path.exists(rating_path) or not os.path.exists(item_path):
         download_movielens(size, dest_path)
-        print(rating_path)
-        print(item_path)
-        print(dest_path)
         extract_movielens(size, rating_path, item_path, dest_path)
 
     return rating_path, item_path
@@ -294,7 +290,6 @@ def extract_movielens(size, rating_path, item_path, zip_path):
         with z.open(ML_DATASETS[size].item_path) as zf, open(item_path, "wb") as f:
             shutil.copyfileobj(zf, f)
 
-    print(zip_path)
 
     os.remove(zip_path)
 
