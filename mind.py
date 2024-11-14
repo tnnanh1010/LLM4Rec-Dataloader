@@ -5,7 +5,7 @@ from download import download
 from zipfile import ZipFile
 import shutil
 import pandas as pd
-import re
+import random
 
 ERROR_MIND_SIZE = (
     "Invalid data size. Option: {small, large, demo}"
@@ -40,14 +40,90 @@ MIND_DATASETS = {
     )
 }
 
-def load_pandas_df():
-    size = MIND_DATASETS
-    #Download
+def load_pandas_df(
+    size="small",
+    behaviors_header=None,
+    news_header=None,
+    npratio=4
+):
+    #Download dataset if not already downloaded
     current_path = os.path.abspath(os.getcwd())
     
     train_path = os.path.join(current_path, "data/MIND{}_train.zip".format(size))
     dev_path = os.path.join(current_path, "data/MIND{}_dev.zip".format(size))
-    datapath, item_datapath = download_and_extract(size, train_path, dev_path)
+    behaviors_train_path, behaviors_dev_path, news_train_path, news_dev_path = download_and_extract(size, train_path, dev_path)
+
+    #Load behaviors
+    behaviors_train_df = read_behaviors(behaviors_train_path, header=behaviors_header, npratio=npratio) if behaviors_header is not None else read_behaviors(behaviors_train_path, npratio=npratio)
+    behaviors_dev_df = read_behaviors(behaviors_dev_path, header=behaviors_header, npratio=npratio) if behaviors_header is not None else read_behaviors(behaviors_dev_path, npratio=npratio)
+
+    #Load news
+    news_train_df = read_news(news_train_path, header=news_header) if news_header is not None else read_news(news_train_path)
+    news_dev_df = read_news(news_dev_path, header=news_header) if news_header is not None else read_news(news_dev_path)
+    
+    return behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df
+
+
+def read_behaviors(
+    behaviors_path,
+    header=('ID', 'userID', 'timestamp', 'history', 'impression'),
+    npratio=4
+):
+    df = pd.read_csv(
+        behaviors_path, 
+        sep='\t', 
+        names=header,
+        usecols=[*range(len(header))],
+    )
+    
+
+    df[['positive', 'negative']] = df['impression'].apply(
+        lambda x: pd.Series([
+            [imp.split('-')[0] for imp in x.split() if imp.split('-')[1] == '1'],  # Positive impressions
+            [imp.split('-')[0] for imp in x.split() if imp.split('-')[1] == '0']   # Negative impressions
+        ])
+    )
+
+    expanded_rows = []
+    for _, row in df.iterrows():
+        positives = row['positive']
+        negatives = row['negative']
+        for pos_id in positives:
+            sampled_negatives = ' '.join(get_sample(negatives, npratio))  
+            expanded_rows.append({
+                header[0]: row[header[0]],
+                header[1]: row[header[1]],
+                header[2]: row[header[2]],
+                header[3]: row[header[3]],
+                'positive': pos_id,
+                'negative': sampled_negatives
+            })
+
+    # Convert to DataFrame
+    expanded_df = pd.DataFrame(expanded_rows)
+        
+    return expanded_df
+
+def read_news(
+    news_path,
+    header=('newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'title_entities', 'abstract_entities')
+):
+    df = pd.read_csv(
+        news_path, 
+        sep='\t', 
+        names=header,
+        usecols=[*range(len(header))]
+    )
+
+    return df
+
+def get_sample(all_elements, num_sample):
+    if num_sample > len(all_elements):
+        return random.sample(all_elements * (num_sample // len(all_elements) + 1), num_sample)
+    else:
+        return random.sample(all_elements, num_sample)
+
+
 
 def download_and_extract(size, train_path, dev_path):
     """Downloads and extracts Mind if they don’t already exist"""
@@ -131,9 +207,8 @@ def extract_mind(size, behaviors_train_path, behaviors_dev_path, news_train_path
 
 if __name__ == "__main__":
     size = "small"
-    current_path = os.path.abspath(os.getcwd())
-    
-    train_path = os.path.join(current_path, "data/MIND{}_train.zip".format(size))
-    dev_path = os.path.join(current_path, "data/MIND{}_dev.zip".format(size))
-    behaviors_train_path, behaviors_dev_path, news_train_path, news_dev_path = download_and_extract(size, train_path, dev_path)
+    behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = load_pandas_df(size)
+    print(behaviors_train_df)
+    print(news_train_df)
+
     
