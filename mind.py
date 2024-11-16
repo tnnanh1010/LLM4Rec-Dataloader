@@ -46,6 +46,7 @@ def load_pandas_df(
     news_header=None,
     npratio=4
 ):
+    size = size.lower()
     #Download dataset if not already downloaded
     current_path = os.path.abspath(os.getcwd())
     

@@ -301,6 +301,12 @@ if __name__ == "__main__":
     # print(download_and_extract("1M", "/home/vinmike/Documents/VSCode/LLMs/DataLoader/data/ml-1m.zip"))
     # df11 = pd.read_csv('/home/vinmike/Documents/VSCode/LLMs/DataLoader/data/ml-1m/movies.dat', sep = "::", encoding="ISO-8859-1")
     # print(df11[:5])
-    df = load_pandas_df(size = "1M", genres_col="type", title_col="title")
-    print(df[:5])
-    df.to_csv("output.csv", index=False)
+    df = pd.read_csv('output.csv')
+    print(df)
+    # df.to_csv("output.csv", index=False)
+    df['user_id_encoded'] = df['userID'].astype("category").cat.codes
+    df['item_id_encoded'] = df['itemID'].astype("category").cat.codes
+
+    # Display the updated DataFrame
+    print(df)
+
