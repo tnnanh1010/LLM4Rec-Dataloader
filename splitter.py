@@ -133,6 +133,7 @@ def interactive_split(data, ratio=[0.8, 0.2], seed=42):
     combined_splits = [pd.concat(split).reset_index(drop=True) for split in splits]
     return combined_splits
 
+
 def sequential_split(data, ratio=[0.8, 0.2]):
     """
     Splits the dataset into train, validation, and test sets for each user chronologically.
@@ -167,7 +168,6 @@ def sequential_split(data, ratio=[0.8, 0.2]):
     # Combine all splits
     combined_splits = [pd.concat(split).reset_index(drop=True) for split in splits]
     return combined_splits
-
 
 def process_split_ratio(ratio):
     """Generate split ratio lists.
@@ -201,42 +201,6 @@ def process_split_ratio(ratio):
         raise TypeError("Split ratio should be either float or a list of floats.")
 
     return multi, ratio
-
-def sequential_split(data, ratio=[0.8, 0.2]):
-    """
-    Splits the dataset into train, validation, and test sets for each user chronologically.
-    Ensures the chronological order is preserved within each split.
-
-    Args:
-        data (pd.DataFrame): Input dataset with at least 'userID', 'itemID', and 'timestamp'.
-        ratio (float or list): Split ratio for the data. Can be a single float (e.g., 0.75 for train-test split)
-                               or a list of floats summing to 1 (e.g., [0.6, 0.2, 0.2] for train-val-test split).
-
-    Returns:
-        list: List of DataFrames (e.g., [train, test] or [train, val, test]).
-    """
-    # Process the ratio
-    multi_split, ratio = process_split_ratio(ratio)
-
-    # Initialize lists for splits
-    splits = [[] for _ in range(len(ratio))]
-
-    for user, group in data.groupby("userID"):
-        group = group.sort_values("timestamp")
-        n_items = len(group)
-
-        # Calculate cumulative split indices
-        split_indices = np.cumsum([round(r * n_items) for r in ratio[:-1]])
-        split_slices = np.split(np.arange(n_items), split_indices)
-
-        # Assign splits
-        for i, split_slice in enumerate(split_slices):
-            splits[i].append(group.iloc[split_slice])
-
-    # Combine all splits
-    combined_splits = [pd.concat(split).reset_index(drop=True) for split in splits]
-    return combined_splits
-
 
 def min_rating_filter(
     data,
@@ -272,3 +236,36 @@ def min_rating_filter(
 
     return data.groupby(split_by_column).filter(lambda x: len(x) >= min_rating)
 
+def split_pandas_data_with_ratios(data, ratios, seed=42, shuffle=False):
+    """Helper function to split pandas DataFrame with given ratios
+
+    Note:
+        Implementation referenced from `this source <https://stackoverflow.com/questions/38250710/how-to-split-data-into-3-sets-train-validation-and-test>`_.
+
+    Args:
+        data (pandas.DataFrame): Pandas data frame to be split.
+        ratios (list of floats): list of ratios for split. The ratios have to sum to 1.
+        seed (int): random seed.
+        shuffle (bool): whether data will be shuffled when being split.
+
+    Returns:
+        list: List of pd.DataFrame split by the given specifications.
+    """
+    if math.fsum(ratios) != 1.0:
+        raise ValueError("The ratios have to sum to 1")
+
+    split_index = np.cumsum(ratios).tolist()[:-1]
+
+    if shuffle:
+        data = data.sample(frac=1, random_state=seed)
+
+    splits = np.split(data, [round(x * len(data)) for x in split_index])
+
+    # Add split index (this makes splitting by group more efficient).
+    for i in range(len(ratios)):
+        splits[i]["split_index"] = i
+
+    return splits
+
+if __name__ == "__main__":
+    print(1)
