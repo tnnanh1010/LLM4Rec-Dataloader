@@ -62,12 +62,22 @@ def ids_encoder(ratings, data_type="movielens", user_column="userID", item_colum
 
     return ratings, uencoder, iencoder
 
-def preprocess_ml_data(split_df):
-    x_train = split_df[0][["userID", "itemID"]].to_numpy()
-    y_train = split_df[0][["rating"]].to_numpy().reshape(-1)
+def format_data(train_df, dev_df, type='movielens'):
 
-    x_test = split_df[1][["userID", "itemID"]].to_numpy()
-    y_test = split_df[1][["rating"]].to_numpy().reshape(-1)
+    if type.lower() =='movielens':
+        x_train = train_df[["userID", "itemID"]].to_numpy()
+        y_train = train_df[["rating"]].to_numpy().reshape(-1)
+
+        x_test = dev_df[1][["userID", "itemID"]].to_numpy()
+        y_test = dev_df[1][["rating"]].to_numpy().reshape(-1)
+    
+    elif type.lower() =='mind':
+        x_train = train_df[["userID", "itemID"]].to_numpy()
+        y_train = train_df[["rating"]].to_numpy().reshape(-1)
+
+        x_test = dev_df[["userID", "itemID"]].to_numpy()
+        y_test = dev_df[["rating"]].to_numpy().reshape(-1)
+
 
     return x_train, y_train, x_test, y_test
 
