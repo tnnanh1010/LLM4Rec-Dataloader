@@ -1,6 +1,7 @@
-# LLM_Dataloader
+```markdown
+# **LLM4Rec Dataloader**
 
-A robust and easy-to-use dataloader for recommendation system datasets. The `LLM4Rec Dataloader` automates the process of downloading, loading, and preprocessing datasets for machine learning tasks, particularly for matrix factorization and other collaborative filtering techniques.
+A robust and easy-to-use dataloader for recommendation system datasets. The `LLM4Rec Dataloader` automates the process of downloading, loading, and preprocessing datasets for machine learning tasks, particularly for matrix factorization and other collaborative filtering techniques (working on).
 
 ---
 
@@ -13,6 +14,7 @@ A robust and easy-to-use dataloader for recommendation system datasets. The `LLM
   - [Dataset Loading](#dataset-loading)
   - [Data Splitting](#data-splitting)
   - [Matrix Factorization Example](#matrix-factorization-example)
+  - [Evaluation Metrics](#evaluation-metrics)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -33,38 +35,18 @@ A robust and easy-to-use dataloader for recommendation system datasets. The `LLM
 - **Pre-integrated with Matrix Factorization**:
   - Ready-to-use tools for preparing data for Matrix Factorization models.
 
+- **Evaluation Metrics**:
+  - Includes implementations for standard metrics like NDCG, MRR, and accuracy.
+
 ---
 
 ## **Supported Datasets**
 
 ### **MovieLens**
 - Variants: `"100k"`, `"1M"`, `"10M"`, `"20M"`
-- Example usage:
-  ```python
-  import movielens
-
-  movie_df = movielens.load_pandas_df(
-      size="1M",
-      header=("userID", "itemID", "rating", "timestamp"),
-      title_col=None,
-      genres_col=None,
-      year_col=None
-  )
-  ```
 
 ### **MIND**
 - Variants: `"demo"`, `"small"`, `"large"`
-- Example usage:
-  ```python
-  from mind import load_pandas_df
-
-  behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = load_pandas_df(
-      size="small",
-      behaviors_header=None,
-      news_header=None,
-      npratio=4
-  )
-  ```
 
 ---
 
@@ -73,11 +55,6 @@ A robust and easy-to-use dataloader for recommendation system datasets. The `LLM
 Clone the repository:
 ```bash
 git clone https://github.com/tnnanh1010/LLM4Rec-Dataloader.git
-```
-
-Install dependencies:
-```bash
-pip install -r requirements.txt
 ```
 
 ---
@@ -92,15 +69,23 @@ import movielens
 
 movie_df = movielens.load_pandas_df(
     size="1M",
-    header=("userID", "itemID", "rating", "timestamp")
+    header=("userID", "itemID", "rating", "timestamp"),
+    title_col=None,
+    genres_col=None,
+    year_col=None
 )
 ```
 
 #### MIND Example:
 ```python
-from mind import load_pandas_df
+import mind
 
-behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = load_pandas_df("small")
+behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = mind.load_pandas_df(
+    size="small",
+    behaviors_header=None,
+    news_header=None,
+    npratio=4
+)
 ```
 
 ---
@@ -111,28 +96,42 @@ behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = load_pandas_d
 ```python
 from splitter import random_split
 
-splits_df = random_split(movie_df, [0.8, 0.2])
+splits_df = random_split(
+    movie_df, 
+    ratio=[0.8, 0.2])
 ```
 
 #### Chronological Split:
 ```python
 from splitter import chrono_split
 
-splits_df = chrono_split(movie_df, ratio=[0.8, 0.2], min_rating=1, filter_by="user", col_user='userID', col_item='itemID', col_timestamp='timestamp')
+splits_df = chrono_split(
+    movie_df,
+    ratio=[0.8, 0.2],
+    min_rating=1,
+    filter_by="user",
+    col_user='userID',
+    col_item='itemID',
+    col_timestamp='timestamp'
+)
 ```
 
 #### Interactive Split:
 ```python
 from splitter import interactive_split
 
-splits_df = interactive_split(movie_df, [0.8, 0.2])
+splits_df = interactive_split(
+    movie_df, 
+    ratio=[0.8, 0.2])
 ```
 
 #### Sequential Split:
 ```python
 from splitter import sequential_split
 
-splits_df = sequential_split(movie_df, [0.8, 0.2])
+splits_df = sequential_split(
+    movie_df, 
+    ratio=[0.8, 0.2])
 ```
 
 ---
@@ -168,6 +167,53 @@ MF = MatrixFactorization(m, n, k=10, alpha=0.01, lamb=1.5)
 ```python
 history = MF.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
 MF.evaluate(x_test, y_test)
+```
+
+---
+
+### **Evaluation Metrics**
+
+The following evaluation metrics are implemented in `metric.py`:
+
+#### 1. **Normalized Discounted Cumulative Gain (NDCG)**:
+```python
+from metric import ndcg_score
+
+ndcg = ndcg_score(y_true, y_score, k=10)
+print(f"NDCG: {ndcg}")
+```
+
+#### 2. **Mean Reciprocal Rank (MRR)**:
+```python
+from metric import mrr_score
+
+mrr = mrr_score(y_true, y_score)
+print(f"MRR: {mrr}")
+```
+
+#### 3. **Click-through Rate (CTR)**:
+```python
+from metric import ctr_score
+
+ctr = ctr_score(y_true, y_score, k=1)
+print(f"CTR: {ctr}")
+```
+
+#### 4. **Accuracy**:
+```python
+from metric import acc
+import torch
+
+accuracy = acc(torch.tensor(y_true), torch.tensor(y_hat))
+print(f"Accuracy: {accuracy}")
+```
+
+#### 5. **Discounted Cumulative Gain (DCG)**:
+```python
+from metric import dcg_score
+
+dcg = dcg_score(y_true, y_score, k=10)
+print(f"DCG: {dcg}")
 ```
 
 ---
