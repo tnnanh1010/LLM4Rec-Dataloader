@@ -64,14 +64,14 @@ def ids_encoder(ratings, data_type="movielens", user_column="userID", item_colum
 
 def format_data(train_df, dev_df, type='movielens'):
 
-    if type.lower() =='movielens':
+    if type.lower() == 'movielens':
         x_train = train_df[["userID", "itemID"]].to_numpy()
         y_train = train_df[["rating"]].to_numpy().reshape(-1)
 
-        x_test = dev_df[1][["userID", "itemID"]].to_numpy()
-        y_test = dev_df[1][["rating"]].to_numpy().reshape(-1)
+        x_test = dev_df[["userID", "itemID"]].to_numpy()
+        y_test = dev_df[["rating"]].to_numpy().reshape(-1)
     
-    elif type.lower() =='mind':
+    elif type.lower() == 'mind':
         x_train = train_df[["userID", "itemID"]].to_numpy()
         y_train = train_df[["rating"]].to_numpy().reshape(-1)
 

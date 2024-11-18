@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def random_split(data, ratio=0.75, seed=42):
+def random_split(data, ratio=[0.8, 0.2], seed=42):
     """Pandas random splitter.
 
     The splitter randomly splits the input data.
@@ -30,15 +30,8 @@ def random_split(data, ratio=0.75, seed=42):
     else:
         return train_test_split(data, test_size=None, train_size=ratio, random_state=seed)
 
-def chrono_split(
-    data,
-    ratio=0.75,
-    min_rating=1,
-    filter_by="user",
-    col_user='userID',
-    col_item='itemID',
-    col_timestamp='timestamp',
-):
+def chrono_split(data, ratio=[0.8, 0.2], min_rating=1, filter_by="user", col_user='userID', col_item='itemID', col_timestamp='timestamp'):
+
     # A few preliminary checks.
     if not (filter_by == "user" or filter_by == "item"):
         raise ValueError("filter_by should be either 'user' or 'item'.")
@@ -89,8 +82,7 @@ def chrono_split(
 
     return splits
 
-import pandas as pd
-import numpy as np
+
 
 def interactive_split(data, ratio=[0.8, 0.2], seed=42):
     """
@@ -110,8 +102,6 @@ def interactive_split(data, ratio=[0.8, 0.2], seed=42):
 
     # Process the ratio
     multi_split, ratio = process_split_ratio(ratio)
-
-    print(ratio)
 
     # Initialize lists for splits
     splits = [[] for _ in range(len(ratio))]
@@ -266,6 +256,3 @@ def split_pandas_data_with_ratios(data, ratios, seed=42, shuffle=False):
         splits[i]["split_index"] = i
 
     return splits
-
-if __name__ == "__main__":
-    print(1)

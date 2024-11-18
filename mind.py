@@ -206,10 +206,5 @@ def extract_mind(size, behaviors_train_path, behaviors_dev_path, news_train_path
     os.remove(dev_zip_path)
 
 
-if __name__ == "__main__":
-    size = "small"
-    behaviors_train_df, behaviors_dev_df, news_train_df, news_dev_df = load_pandas_df(size)
-    print(behaviors_train_df)
-    print(news_train_df)
 
     
