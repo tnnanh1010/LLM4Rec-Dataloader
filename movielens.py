@@ -46,7 +46,7 @@ GENRES = (
 MovieLens = namedtuple("MovieLens", ["url", "unzip", "path", "sep", "item_path", "item_sep", "has_header"])
 ML_DATASETS = {
     "100K": MovieLens(
-        "http://files.grouplens.org/datasets/movielens/ml-100k/u.data",
+        "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
         False,
         "ml-100k/u.data",
         "\t",
@@ -284,6 +284,7 @@ def extract_movielens(size, rating_path, item_path, zip_path):
     print("ZIPPATH= ", zip_path)
 
     with ZipFile(zip_path, "r") as z:
+        print(1)
         with z.open(ML_DATASETS[size].path) as zf, open(rating_path, "wb") as f:
             
             shutil.copyfileobj(zf, f)
@@ -292,21 +293,4 @@ def extract_movielens(size, rating_path, item_path, zip_path):
 
 
     os.remove(zip_path)
-
-if __name__ == "__main__":
-    
-    # size = "1M"
-    # url = ML_DATASETS[size.upper()].url
-    # dirs, file = os.path.split('/home/vinmike/Documents/VSCode/LLMs/DataLoader/data/ml-1m.zip')
-    # print(download_and_extract("1M", "/home/vinmike/Documents/VSCode/LLMs/DataLoader/data/ml-1m.zip"))
-    # df11 = pd.read_csv('/home/vinmike/Documents/VSCode/LLMs/DataLoader/data/ml-1m/movies.dat', sep = "::", encoding="ISO-8859-1")
-    # print(df11[:5])
-    df = pd.read_csv('output.csv')
-    print(df)
-    # df.to_csv("output.csv", index=False)
-    df['user_id_encoded'] = df['userID'].astype("category").cat.codes
-    df['item_id_encoded'] = df['itemID'].astype("category").cat.codes
-
-    # Display the updated DataFrame
-    print(df)
 
