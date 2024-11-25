@@ -2,9 +2,8 @@ import numpy as np
 import movielens
 import pandas as pd
 import splitter
+from scipy.special import expit
     
-from model.MF.preprocessing import mean_ratings
-from model.MF.preprocessing import normalized_ratings
 from model.MF.preprocessing import ids_encoder
 
 
@@ -16,7 +15,7 @@ class MatrixFactorization:
         : param
             - m : number of users
             - n : number of items
-            - k : length of latent factor, both for users and items. 50 by default
+            - k : length of latent factor, both for users and items. 
             - alpha : learning rate. 0.001 by default
             - lamb : regularizer parameter. 0.02 by default
         """
@@ -58,6 +57,18 @@ class MatrixFactorization:
             u, i = pair
             error += abs(r - np.dot(self.P[u], self.Q[i]))
         return error/M
+
+    def bce_loss(self, x, y):
+        """
+        Compute Binary Cross-Entropy loss for given inputs
+        """
+        loss = 0
+        for pair, r in zip(x, y):
+            u, i = pair
+            r_hat = expit(np.dot(self.P[u], self.Q[i]))  # Sigmoid activation
+            # Compute BCE loss
+            loss += -(r * np.log(r_hat + 1e-9) + (1 - r) * np.log(1 - r_hat + 1e-9))
+        return loss / len(y)
     
     def print_training_progress(self, epoch, epochs, error, val_error, steps=5):
         if epoch == 1 or epoch % steps == 0 :
@@ -69,7 +80,7 @@ class MatrixFactorization:
                 self.alpha = self.alpha * (1 / (factor * 20))
                 print("\nLearning Rate : {}\n".format(self.alpha))
     
-    def fit(self, x_train, y_train, validation_data, epochs=1000):
+    def fit(self, x_train, y_train, validation_data, epochs=1000, loss='mae'):
         """
         Train latent factors P and Q according to the training set
         
@@ -106,8 +117,12 @@ class MatrixFactorization:
                 self.update_rule(u, i, e)
                 
             # training and validation error  after this epochs
-            error = self.mae(x_train, y_train)
-            val_error = self.mae(x_test, y_test)
+            if loss == 'mae':
+                error = self.mae(x_train, y_train)
+                val_error = self.mae(x_test, y_test)
+            elif loss == 'bce':
+                error = self.bce_loss(x_train, y_train)
+                val_error = self.bce_loss(x_test, y_test)
             
             # update history
             self.history['epochs'].append(epoch)

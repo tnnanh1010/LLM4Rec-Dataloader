@@ -92,22 +92,22 @@ def preprocess_mind_data(behaviors_df):
     behaviors_df['history'] = behaviors_df['history'].fillna('')
 
     # Create implicit feedback from history and positive items
-    new_rows = []  # List to store new rows to be concatenated
+    new_rows = []  
     for _, row in behaviors_df.iterrows():
         user_id = row['userID']
-        history = row['history']  # This will now be an empty string if original was NaN
+        history = row['history']  
         positive = row['positive'].split()
         negative = row['negative'].split()
 
         # For implicit feedback, consider positive items as 1 (interacted), negative as 0 (not interacted)
-        for item in history.split():  # Safely split, even if history is an empty string
+        for item in history.split():  
             new_rows.append({'userID': user_id, 'itemID': item, 'rating': 1})
         
         for item in positive:
             new_rows.append({'userID': user_id, 'itemID': item, 'rating': 1})
         
-        for item in negative:
-            new_rows.append({'userID': user_id, 'itemID': item, 'rating': 0})
+        # for item in negative:
+        #     new_rows.append({'userID': user_id, 'itemID': item, 'rating': 0})
 
     # Convert new rows into DataFrame and concatenate with the existing ratings DataFrame
     new_rows_df = pd.DataFrame(new_rows)
