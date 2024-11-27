@@ -140,13 +140,16 @@ class MatrixFactorization:
         self.history['val_loss'].append(val_error)
         self.history['lr'].append(self.alpha)
     
-    def evaluate(self, x_test, y_test):
+    def evaluate(self, x_test, y_test, loss='mae'):
         """
         compute the global error on the test set        
         :param x_test : test pairs (u,i) for which rating r_ui is known
         :param y_test : set of ratings r_ui for all test pairs (u,i)
         """
-        error = self.mae(x_test, y_test)
+        if loss == 'mae':
+            error = self.mae(x_test, y_test)
+        elif loss == 'bce':
+            error = self.bce_loss(x_test, y_test)
         print(f"validation error : {round(error,3)}")
         
         return error
