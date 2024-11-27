@@ -83,7 +83,6 @@ def chrono_split(data, ratio=[0.8, 0.2], min_rating=1, filter_by="user", col_use
     return splits
 
 
-
 def interactive_split(data, ratio=[0.8, 0.2], seed=42):
     """
     Splits the dataset into train, validation, and test sets for each user.

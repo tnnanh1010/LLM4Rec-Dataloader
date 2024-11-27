@@ -35,3 +35,5 @@ def acc(y_true, y_hat):
     hit = torch.sum(y_true == y_hat)
     return hit.data.float() * 1.0 / tot
 
+def auc_score(y_true, y_score):
+    return roc_auc_score(y_true, y_score)

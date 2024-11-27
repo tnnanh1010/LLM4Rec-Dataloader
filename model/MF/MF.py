@@ -1,10 +1,8 @@
 import numpy as np
-import movielens
 import pandas as pd
-import splitter
 from scipy.special import expit
-    
-from model.MF.preprocessing import ids_encoder
+from sklearn.metrics import roc_auc_score
+from scipy.sparse import csr_matrix
 
 
 class MatrixFactorization:
@@ -25,7 +23,8 @@ class MatrixFactorization:
         self.k = k
         self.P = np.random.normal(size=(m, k))
         self.Q = np.random.normal(size=(n, k))
-        
+
+
         # hyperparameter initialization
         self.alpha = alpha
         self.lamb = lamb
@@ -125,11 +124,6 @@ class MatrixFactorization:
                 val_error = self.bce_loss(x_test, y_test)
             
             # update history
-            self.history['epochs'].append(epoch)
-            self.history['loss'].append(error)
-            self.history['val_loss'].append(val_error)
-            
-            # update history
             self.update_history(epoch, error, val_error)
             
             # print training progress after each steps epochs
@@ -157,22 +151,6 @@ class MatrixFactorization:
         
         return error
       
-    def predict(self, userid, itemid):
-        """
-        Make rating prediction for a user on an item
-        :param userid
-        :param itemid
-        :return r : predicted rating
-        """
-        # encode user and item ids to be able to access their latent factors in
-        # matrices P and Q
-        u = uencoder.transform([userid])[0]
-        i = iencoder.transform([itemid])[0]
-
-        # rating prediction using encoded ids. Dot product between P_u and Q_i
-        r = np.dot(self.P[u], self.Q[i])
-        return r
-
     def recommend(self, userid, N=30):
         """
         make to N recommendations for a given user
@@ -196,27 +174,176 @@ class MatrixFactorization:
         preds = predictions[top_idx]
 
         return top_items, preds     
-    
 
-if __name__ == '__main__':
-    df = movielens.load_pandas_df("1M")
+
+class MatrixFactorizationBPR:
+    def __init__(self, m, n, k=10, alpha=0.01, lamb=0.001):
+        """
+        Initialize Matrix Factorization with BPR loss.
+        :param
+            - m : number of users
+            - n : number of items
+            - k : length of latent factors
+            - alpha : learning rate
+            - lamb : regularization parameter
+        """
+        np.random.seed(32)
+        self.n_user = m
+        self.n_item = n
+        self.k = k
+        self.P = np.ones(shape=(m, k))
+        self.Q = np.ones(shape=(n, k)) 
+        self.alpha = alpha
+        self.lamb = lamb
+        self.history = {"epochs": [], "loss": [], "lr": [], "train_auc": [], "val_auc": []}
+    
+    def print_training_parameters(self):
+        print(f"Training Matrix Factorization with BPR Loss...")
+        print(f"k={self.k}, alpha={self.alpha}, lambda={self.lamb}")
+    
+    def bpr_loss(self, u, i, j):
+        """
+        Compute the BPR loss on the training data.
+        """
+
+        x_uij = np.dot(self.P[u], self.Q[i] - self.Q[j])
+ 
+        sigmoid = 1 / (1 + np.exp(-x_uij))
+
+        #L2 normalization
+        regularization = self.lamb / 2 * (np.linalg.norm(self.P[u])**2 + 
+                                          np.linalg.norm(self.Q[i])**2 + 
+                                          np.linalg.norm(self.Q[j])**2)
+
+        loss = -np.log(sigmoid) + regularization
+        return loss
+    
+    def update_rule(self, u, i, j):
+        """
+        Perform SGD update for a single triplet (u, i, j).
+        """
+        x_uij = np.dot(self.P[u], self.Q[i] - self.Q[j])
+
+
+        sigmoid_gradient = np.exp(x_uij)  
+
+        
+        # Update user and item latent factors
+        self.P[u] += self.alpha * ((sigmoid_gradient / (1 + sigmoid_gradient))  * (self.Q[i] - self.Q[j]) - self.lamb * self.P[u])
+        self.Q[i] += self.alpha * ((sigmoid_gradient / (1 + sigmoid_gradient)) * self.P[u] - self.lamb * self.Q[i])
+        self.Q[j] += self.alpha * (-(sigmoid_gradient / (1 + sigmoid_gradient)) * self.P[u] - self.lamb * self.Q[j])
+        
+    def auc_score(self, bpr_matrix):
+        """
+        Compute the AUC score based on a pandas DataFrame for BPR matrix.
+        
+        :param bpr_matrix: pandas DataFrame with columns ['userID', 'itemID', 'rating']
+        :return: AUC score
+        """
+        auc = 0.0
+        
+        for u in range(self.n_user):
+            
+            y_pred = self.P[u] @ self.Q.T
+            # y_pred = a[u]
+
+            # Initialize the true labels as a zero array
+            y_true = np.zeros(self.n_item)
+
+            y_true[bpr_matrix[u].indices] = 1
+
+            if len(np.unique(y_true)) == 1:
+                continue
+
+            # Calculate the AUC for this user and add it to the total AUC
+            auc += roc_auc_score(y_true, y_pred)
+            
+        
+        return auc / self.n_user
+
+    def convert_to_bpr_mat(self, dataframe, threshold=3):
+
+        tempdf = dataframe
+        tempdf['positive'] = tempdf['rating'].apply(func=lambda x: 0 if x < threshold else 1)
+
+        # Vì tập dữ liệu này đánh index từ 1 nên chuyển sang kiểu category
+        # để tránh việc chúng ta có ma trận
+        tempdf['userID'] = tempdf['userID'].astype('category')
+        tempdf['itemID'] = tempdf['itemID'].astype('category')
+
+        bpr_mat = csr_matrix((tempdf['positive'],
+                            (tempdf['userID'].cat.codes,
+                            tempdf['itemID'].cat.codes)))
+        bpr_mat.eliminate_zeros()
+        del tempdf
+        return bpr_mat
+
+    def update_history(self, epoch, error):
+        self.history['epochs'].append(epoch)
+        self.history['loss'].append(error)
+        self.history['lr'].append(self.alpha)
+
+
+    def fit(self, train_df, test_df, epochs=100):
+        """
+        Train the model using BPR loss and evaluate on validation data.
+        :param
+            - x_train : training pairs (u, i)
+            - y_train : training ratings
+            - x_test : validation pairs (u, i)
+            - n_items : total number of items in the dataset
+        """
+        self.print_training_parameters()
+        
+         # Convert the input DataFrame into BPR format
+        bpr_train_mat = self.convert_to_bpr_mat(train_df)
+        bpr_test_mat = self.convert_to_bpr_mat(test_df)
+
+
+        pos = np.split(bpr_train_mat.indices, bpr_train_mat.indptr)[1:-1]
+        neg = [np.setdiff1d(np.arange(0, self.n_item,1), e) for e in pos]
+
+
+        for epoch in range(1, epochs + 1):
+            # Training
+            u = np.random.randint(0, self.n_user)
+            i = pos[u][np.random.randint(0, len(pos[u]))]
+            j = neg[u][np.random.randint(0, len(neg[u]))]
+            self.update_rule(u, i, j)
+            
+            # Compute training loss (BPR)
+            train_loss = self.bpr_loss(u, i, j)
+            
+            # Update history
+            self.update_history(epoch, train_loss)
+            
+            print(f"Epoch {epoch}/{epochs} - BPR Loss: {train_loss:.4f} ")
+
+        train_auc = self.auc_score(bpr_train_mat)
+        test_auc = self.auc_score(bpr_test_mat)
+
+        print(f"Train AUC: {train_auc:.4f} - Val AUC: {test_auc:.4f}")
+
+        return self.history
+    
+    def predict(self):
+        return self.P @ self.Q.T
+
+'''
+if __name__ == "__main__":
+
+    df = movielens.load_pandas_df("100K")
+    
     ratings = pd.DataFrame(df[["userID", "itemID", "rating"]])
 
     ratings, uencoder, iencoder = ids_encoder(ratings)
 
-    m = ratings["userID"].nunique()   # total number of users
-    n = ratings["userID"].nunique()   # total number of items
+    m = ratings["userID"].nunique()  # number of users
+    n = ratings["itemID"].nunique()  # number of items
+
     split_df = splitter.interactive_split(ratings)
 
-    x_train = split_df[0][["userID", "itemID"]].to_numpy()
-    y_train = split_df[0][["rating"]].to_numpy().reshape(-1)
+    MF_BPR = MatrixFactorizationBPR(m, n, k=12, alpha=0.01, lamb=0.01)
 
-    x_test = split_df[1][["userID", "itemID"]].to_numpy()
-    y_test = split_df[1][["rating"]].to_numpy().reshape(-1)
-
-
-    MF = MatrixFactorization(m, n, k=10, alpha=0.01, lamb=1.5)
-
-    history = MF.fit(x_train, y_train, epochs=10, validation_data=(x_test, y_test))
-
-    MF.evaluate(x_test, y_test)
+    MF_BPR.fit(split_df[0], split_df[1], epochs=10000)
+'''
