@@ -284,9 +284,7 @@ def extract_movielens(size, rating_path, item_path, zip_path):
     print("ZIPPATH= ", zip_path)
 
     with ZipFile(zip_path, "r") as z:
-        print(1)
-        with z.open(ML_DATASETS[size].path) as zf, open(rating_path, "wb") as f:
-            
+        with z.open(ML_DATASETS[size].path) as zf, open(rating_path, "wb") as f:            
             shutil.copyfileobj(zf, f)
         with z.open(ML_DATASETS[size].item_path) as zf, open(item_path, "wb") as f:
             shutil.copyfileobj(zf, f)
