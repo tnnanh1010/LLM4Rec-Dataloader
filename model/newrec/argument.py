@@ -69,6 +69,7 @@ class MinerArgs:
     eval_behaviors_path: str = "/home/vinmike/Documents/GitHub/LLM4Rec-Dataloader/data/MINDsmall_dev/behaviors.tsv"
     eval_news_path: str = "/home/vinmike/Documents/GitHub/LLM4Rec-Dataloader/data/MINDsmall_dev/news.tsv"
     category_embed_path: str = None
+    
     # Model args
     pretrained_embedding: str = "vinai/phobert-base"
     apply_reduce_dim: bool = True
@@ -80,6 +81,7 @@ class MinerArgs:
     context_code_dim: int = 200
     score_type: str = "weighted"
     dropout: float = 0.2
+    warmup_steps: str = None
 
     # Train args
     npratio: int = 4
@@ -98,6 +100,12 @@ class MinerArgs:
     evaluation_info: str = "metrics"
     eval_steps: int = 400
     fast_eval: str = False
-
+    max_steps: str = None
+    freeze_transformer: str = True
+    use_sapo: str = True
+    lstm_num_layers: int = 1
+    lstm_dropout: float = 0.2
+    use_category_bias: str = True
+    
 def parse_miner_args():
     return MinerArgs()

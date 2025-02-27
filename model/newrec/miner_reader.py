@@ -2,7 +2,7 @@ import csv
 import random
 from typing import List, Tuple
 from transformers import PreTrainedTokenizer
-from src.entities import Dataset, News
+from entities import Dataset, News
 
 class Reader:
     def __init__(self, tokenizer: PreTrainedTokenizer, max_title_length: int, max_sapo_length: int, user2id: dict,
